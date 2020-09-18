@@ -1,25 +1,101 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Reproducible Research: Course Project 1"
+author: "Myat Myat Min"
+date: "9/18/2020"
+output: html_document
 ---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
 
+## R Markdown
 
-## Loading and preprocessing the data
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
+## Load the data.
+## Process/transform the data.
+ 
+```{r}
+activity_Data <- read.csv("activity.csv")
+summary(activity_Data)
+names(activity_Data)
+head(activity_Data)
 
+```
 ## What is mean total number of steps taken per day?
+```{r}
+totalstepsPerDay <- aggregate(steps ~ date, activity_Data, sum, na.rm=TRUE)
 
+hist(totalstepsPerDay$steps, xlab = "Class of total number os steps per day", ylab = "Number of days", main = "Total number of steps taken per day")
 
+meanStepsPerDay <- mean(totalstepsPerDay$steps)
+meanStepsPerDay
+
+medianStepsPerDay <- median(totalstepsPerDay$steps)
+medianStepsPerDay
+
+```
+- The mean of the total number of steps taken per day is stored in meanStepsPerDay.
+- The median of the total number of steps taken per day is stored in medianStepsPerDay.
 
 ## What is the average daily activity pattern?
+  
+```{r}
+avgstepsPerInterval <- aggregate(steps~interval, data=activity_Data, mean, na.rm=TRUE)
+plot(steps~interval, data= avgstepsPerInterval, type="l")
 
-
+intervalWithMaxNbSteps <- avgstepsPerInterval[which.max(avgstepsPerInterval$steps),]$interval
+intervalWithMaxNbSteps
+```
 
 ## Imputing missing values
 
+```{r}
+totalValuesMissings <- sum(is.na(activity_Data$steps))
+totalValuesMissings
 
+getMeanStepsPerInterval<-function(interval){
+  avgstepsPerInterval[avgstepsPerInterval$interval==interval,]$steps
+}
+
+activityDataNoNA <- activity_Data
+for(i in 1:nrow(activityDataNoNA)){
+  if(is.na(activityDataNoNA[i,]$steps)){
+    activityDataNoNA[i,]$steps <- getMeanStepsPerInterval(activityDataNoNA[i,]$interval)
+  }
+}
+
+totalStepsPerDayNoNA <- aggregate(steps ~ date, data=activityDataNoNA, sum)
+hist(totalStepsPerDayNoNA$steps, xlab = "Class of total number of steps per day", ylab = "Numver of days", main = "Number os steps taken per day after imputting missing values")
+
+meanStepsPerDayNoNA <- mean(totalStepsPerDayNoNA$steps)
+medianStepsPerDayNoNA <- median(totalStepsPerDayNoNA$steps)
+```
 
 ## Are there differences in activity patterns between weekdays and weekends?
+  
+```{r}
+activityDataNoNA$date <- as.Date(strptime(activityDataNoNA$date, format="%Y-%m-%d"))
+activityDataNoNA$day <- weekdays(activityDataNoNA$date)
+for (i in 1:nrow(activityDataNoNA)) {
+  if (activityDataNoNA[i,]$day %in% c("Saturday","Sunday")) {
+    activityDataNoNA[i,]$day<-"weekend"
+  }
+  else{
+    activityDataNoNA[i,]$day<-"weekday"
+  }
+}
+stepsByDay <- aggregate(activityDataNoNA$steps ~ activityDataNoNA$interval + activityDataNoNA$day, activityDataNoNA, mean)
+
+names(stepsByDay) <- c("interval", "day", "steps")
+library(lattice)
+xyplot(steps ~ interval | day, stepsByDay, type = "l", layout = c(1, 2), 
+       xlab = "Interval", ylab = "Number of steps")
+```
+
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
